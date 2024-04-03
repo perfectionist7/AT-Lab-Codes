@@ -823,3 +823,48 @@ DatabaseHelper
     }
 
 --------------------------------------------------------------------------------------------------------------------------------
+
+SELECTING NAMES AND MARKS OF THE STUDENT WITH THE HIGHEST MARKS & STUDENT WITH THE LOWEST MARKS
+
+DatabaseHelper
+
+    fun findmaxstudent(): Cursor {
+        val db = this.readableDatabase
+        return db.rawQuery("SELECT name, marks FROM $TABLE_NAME a WHERE a.marks = (SELECT MAX(MARKS) FROM $TABLE_NAME)",null)
+    }
+
+    fun findminstudent(): Cursor {
+        val db = this.readableDatabase
+        return db.rawQuery("SELECT name, marks FROM $TABLE_NAME a WHERE a.marks = (SELECT MIN(MARKS) FROM $TABLE_NAME)",null)
+    }
+
+MainActivity 
+
+ displayButton.setOnClickListener {
+
+
+            val cursor2: Cursor = databaseHelper.findmaxstudent()
+            if (cursor2.count == 0) {
+                Toast.makeText(this, "No students to display", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val displayString2 = StringBuilder()
+            while (cursor2.moveToNext()) {
+                val maxmarks = cursor2.getString(1)
+                val name = cursor2.getString(0)
+                displayString2.append("Name : $name, Max Marks: $maxmarks\n")
+            }
+            val cursor: Cursor = databaseHelper.findminstudent()
+            if (cursor.count == 0) {
+                Toast.makeText(this, "No students to display", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            while (cursor.moveToNext()) {
+                val minmarks = cursor.getString(1)
+                val name = cursor.getString(0)
+                displayString2.append("Name : $name, Min Marks: $minmarks\n")
+            }
+            showAlert(this,"Name and Count", displayString2.toString())
+        }
+
+-------------------------------------------------------------------------------------------------------------------
