@@ -483,3 +483,287 @@ class SecondActivity : AppCompatActivity() {
 
 
 -------------------------------------------------------------------------------------------------------------------------------------------
+
+
+GRIDVIEW + NOTIFICATION 
+
+------------------------------------------------------------------------------------------------------------------------------------------
+
+package com.example.gridview3
+
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.os.Build
+import androidx.appcompat.app.AppCompatActivity
+import android.os.Bundle
+import android.widget.ArrayAdapter
+import android.widget.GridView
+import androidx.core.app.NotificationCompat
+
+class MainActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+        var gridview = findViewById<GridView>(R.id.gv)
+        var items = arrayOf("ayush", "piyush", "random", "newone")
+        var gridadapter = ArrayAdapter(this, R.layout.grid_item_layout, R.id.textView, items)
+        gridview.adapter = gridadapter;
+        gridview.setOnItemClickListener { parent, view, position, id ->
+            val selecteditem = items[position]
+            val builder = NotificationCompat.Builder(this, "channel_id")
+                .setSmallIcon(android.R.drawable.stat_notify_chat)
+                .setContentTitle("Selected Item")
+                .setContentText("You have selected $selecteditem")
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+
+            // Create a notification manager object
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+            // Check if the device is running Android Oreo or higher
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                // Create a notification channel
+                val channel = NotificationChannel("channel_id", "Channel Name", NotificationManager.IMPORTANCE_DEFAULT)
+                channel.description = "Channel Description"
+                // Register the channel with the system
+                notificationManager.createNotificationChannel(channel)
+            }
+            // Issue the notification
+            notificationManager.notify(1, builder.build())
+        }
+
+    }
+
+}
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+CRUD OPERATION WITH SQLITE
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Go to AndroidManifest.xml
+
+add these permissions -
+
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+
+below <manifest> tag and above <application> tag
+
+like here 
+
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Androidstudio"
+        tools:targetApi="31">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>
+
+Make New Class DatabaseHelper and add the code below - 
+
+import android.content.ContentValues
+import android.content.Context
+import android.database.Cursor
+import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteOpenHelper
+
+class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
+
+    companion object {
+        private const val DATABASE_VERSION = 1
+        private const val DATABASE_NAME = "StudentManager.db"
+
+        // Table name and columns
+        private const val TABLE_NAME = "students"
+        private const val COLUMN_ROLL_NUMBER = "roll_number"
+        private const val COLUMN_NAME = "name"
+        private const val COLUMN_MARKS = "marks"
+    }
+
+    override fun onCreate(db: SQLiteDatabase?) {
+        val createTableQuery = "CREATE TABLE $TABLE_NAME (" +
+                "$COLUMN_ROLL_NUMBER TEXT PRIMARY KEY," +
+                "$COLUMN_NAME TEXT," +
+                "$COLUMN_MARKS INTEGER)"
+        db?.execSQL(createTableQuery)
+    }
+
+    override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
+        db?.execSQL("DROP TABLE IF EXISTS $TABLE_NAME")
+        onCreate(db)
+    }
+
+    fun addStudent(rollNumber: String, name: String, marks: Int): Boolean {
+        val db = this.writableDatabase
+        val contentValues = ContentValues()
+        contentValues.put(COLUMN_ROLL_NUMBER, rollNumber)
+        contentValues.put(COLUMN_NAME, name)
+        contentValues.put(COLUMN_MARKS, marks)
+        val result = db.insert(TABLE_NAME, null, contentValues)
+        return result != -1L
+    }
+
+    fun readAllStudents(): Cursor {
+        val db = this.readableDatabase
+        return db.rawQuery("SELECT * FROM $TABLE_NAME", null)
+    }
+
+    fun updateStudent(rollNumber: String, name: String, marks: Int): Boolean {
+        val db = this.writableDatabase
+        val contentValues = ContentValues()
+        contentValues.put(COLUMN_NAME, name)
+        contentValues.put(COLUMN_MARKS, marks)
+        val result = db.update(TABLE_NAME, contentValues, "$COLUMN_ROLL_NUMBER = ?", arrayOf(rollNumber))
+        return result != -1
+    }
+
+    fun deleteStudent(rollNumber: String): Boolean {
+        val db = this.writableDatabase
+        val result = db.delete(TABLE_NAME, "$COLUMN_ROLL_NUMBER = ?", arrayOf(rollNumber))
+        return result != -1
+    }
+}
+
+
+In the Main Activity
+
+do this 
+
+
+package com.example.androidstudio
+import DatabaseHelper
+import android.content.Context
+import android.database.Cursor
+import android.os.Bundle
+import android.widget.Button
+import android.widget.EditText
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+
+class MainActivity : AppCompatActivity() {
+    fun showAlert(context: Context, title: String, message: String) {
+        val builder = AlertDialog.Builder(context)
+        builder.setTitle(title)
+        builder.setMessage(message)
+
+        builder.setPositiveButton("OK") { dialog, _ ->
+            dialog.dismiss()
+        }
+        val dialog = builder.create()
+        dialog.show()
+    }
+    private lateinit var databaseHelper: DatabaseHelper
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        databaseHelper = DatabaseHelper(this)
+
+        val rollNumberEditText = findViewById<EditText>(R.id.rollNumberEditText)
+        val nameEditText = findViewById<EditText>(R.id.nameEditText)
+        val marksEditText = findViewById<EditText>(R.id.marksEditText)
+        val addButton = findViewById<Button>(R.id.addButton)
+        val displayButton = findViewById<Button>(R.id.displayButton)
+        val updatestudent = findViewById<Button>(R.id.updatestudent)
+        val deletestudent = findViewById<Button>(R.id.deletestudent)
+        updatestudent.setOnClickListener {
+            val rollNumber = rollNumberEditText.text.toString()
+            val name = nameEditText.text.toString()
+            val marks = marksEditText.text.toString()
+
+            if (rollNumber.isNotEmpty() && name.isNotEmpty() && marks.isNotEmpty()) {
+                if (databaseHelper.updateStudent(rollNumber, name, marks.toInt())) {
+                    Toast.makeText(this, "Updated Student Successfully", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Failed to update student", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                Toast.makeText(this, "Please fill in all fields", Toast.LENGTH_SHORT).show()
+            }
+
+        }
+
+        deletestudent.setOnClickListener {
+            val rollNumber = rollNumberEditText.text.toString()
+
+            if (rollNumber.isNotEmpty()) {
+                if (databaseHelper.deleteStudent(rollNumber)) {
+                    Toast.makeText(this, "Deleted Student Successfully", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Failed to delete student", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                Toast.makeText(this, "Please fill in roll number field", Toast.LENGTH_SHORT).show()
+            }
+        }
+        addButton.setOnClickListener {
+            val rollNumber = rollNumberEditText.text.toString()
+            val name = nameEditText.text.toString()
+            val marks = marksEditText.text.toString()
+
+            if (rollNumber.isNotEmpty() && name.isNotEmpty() && marks.isNotEmpty()) {
+                if (databaseHelper.addStudent(rollNumber, name, marks.toInt())) {
+                    Toast.makeText(this, "Student added successfully", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Failed to add student", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                Toast.makeText(this, "Please fill in all fields", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        displayButton.setOnClickListener {
+            val cursor: Cursor = databaseHelper.readAllStudents()
+            if (cursor.count == 0) {
+                Toast.makeText(this, "No students to display", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val displayString = StringBuilder()
+            while (cursor.moveToNext()) {
+                val rollNumber = cursor.getString(0)
+                val name = cursor.getString(1)
+                val marks = cursor.getInt(2)
+                displayString.append("Roll Number: $rollNumber, Name: $name, Marks: $marks\n")
+            }
+            showAlert(this,"Selected Items", displayString.toString())
+        }
+    }
+
+    override fun onDestroy() {
+        databaseHelper.close()
+        super.onDestroy()
+    }
+}
+
+
+done!
+
+--------------------------------------------------------------------------------------------------------------------------
+
