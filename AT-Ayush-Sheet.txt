@@ -767,3 +767,59 @@ done!
 
 --------------------------------------------------------------------------------------------------------------------------
 
+FINDING SPECIFIC INPUT 
+
+
+displayButton.setOnClickListener {
+        val name2 = nameEditText.text.toString()
+           val cursor2: Cursor = databaseHelper.findtotstudents(name2)
+            if (cursor2.count == 0) {
+                Toast.makeText(this, "No students to display", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val displayString2 = StringBuilder()
+            while (cursor2.moveToNext()) {
+                val count = cursor2.getString(0)
+                displayString2.append("Count is $count")
+            }
+            showAlert(this,"Count Items", displayString2.toString())
+        }
+    }
+
+FUNCTION IN databaseHelper is 
+
+fun findtotstudents(name: String): Cursor {
+        val db = this.readableDatabase
+        return db.rawQuery("SELECT COUNT(roll_number) FROM $TABLE_NAME WHERE name= + \"$name\"", null)
+    }
+
+----------------------------------------------------------------------------------------------------------------------------
+
+SELECTING COUNT OF ROLLNUMBERS OF SIMILAR NAMES
+
+MainActivity.kt 
+
+displayButton.setOnClickListener {
+ 
+val cursor2: Cursor = databaseHelper.checkeachcount()
+            if (cursor2.count == 0) {
+                Toast.makeText(this, "No students to display", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val displayString2 = StringBuilder()
+            while (cursor2.moveToNext()) {
+                val count = cursor2.getString(1)
+                val name = cursor2.getString(0)
+                displayString2.append("Name : $name, Count: $count")
+            }
+            showAlert(this,"Name and Count", displayString2.toString())
+        }
+
+DatabaseHelper
+
+    fun checkeachcount(): Cursor {
+        val db = this.readableDatabase
+        return db.rawQuery("SELECT name, COUNT(roll_number) FROM $TABLE_NAME GROUP BY name", null)
+    }
+
+--------------------------------------------------------------------------------------------------------------------------------
